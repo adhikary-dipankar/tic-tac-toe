@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tic-Tac-Toe Pro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Quicksand', sans-serif;
+      background: linear-gradient(135deg, #3f2b96, #a8c0ff);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .wrapper {
+      background: #fff;
+      border-radius: 20px;
+      padding: 30px 20px;
+      width: 90%;
+      max-width: 420px;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+    }
+
+    h1 {
+      text-align: center;
+      color: #3f2b96;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    input {
+      padding: 10px;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      font-size: 16px;
+    }
+
+    button {
+      padding: 12px;
+      margin-top: 10px;
+      background-color: #3f2b96;
+      color: #fff;
+      font-size: 16px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background-color: #2a1e75;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .cell {
+      width: 100px;
+      height: 100px;
+      background: #f5f7fa;
+      border-radius: 15px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 40px;
+      color: #3f2b96;
+      cursor: pointer;
+      box-shadow: 6px 6px 12px #d1d9e6, -6px -6px 12px #ffffff;
+      transition: transform 0.2s ease;
+    }
+
+    .cell:hover {
+      transform: scale(1.05);
+    }
+
+    .status, .score, .winner {
+      text-align: center;
+      margin-top: 15px;
+      font-size: 18px;
+    }
+
+    .score {
+      display: flex;
+      justify-content: space-around;
+    }
+
+    .icon {
+      pointer-events: none;
+    }
+
+    .center-btn {
+      display: flex;
+      justify-content: center;
+    }
+
+    #restartBtn {
+      margin-top: 20px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper" id="setup">
+    <h1>Tic-Tac-Toe Pro</h1>
+    <div class="input-group">
+      <input type="text" id="player1" placeholder="Enter Player 1 Name" required />
+      <input type="text" id="player2" placeholder="Enter Player 2 Name" required />
+      <input type="number" id="games" placeholder="Best of N Games" min="1" required />
+      <button onclick="startGame()">Start Game</button>
+    </div>
+  </div>
+
+  <div class="wrapper" id="game" style="display:none;">
+    <h1 id="gameTitle">Tic-Tac-Toe</h1>
+    <div class="board" id="board"></div>
+    <div class="status" id="status">Status here</div>
+    <div class="score">
+      <div id="scoreX">Player X: 0</div>
+      <div id="scoreO">Player O: 0</div>
+    </div>
+    <div class="winner" id="winnerMsg"></div>
+    <div class="center-btn">
+      <button id="restartBtn" onclick="backToSetup()">🔁 Play Again</button>
+    </div>
+  </div>
+
+  <audio id="moveSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_f7c276a52d.mp3" preload="auto"></audio>
+  <audio id="winSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_4917596102.mp3" preload="auto"></audio>
+  <audio id="drawSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_f689176837.mp3" preload="auto"></audio>
+
+  <script>
+    let player1Name, player2Name, totalGames, currentPlayer = "X";
+    let board = Array(9).fill("");
+    let gameActive = true;
+    let scoreX = 0, scoreO = 0, gamesPlayed = 0;
+
+    const winPatterns = [
+      [0,1,2],[3,4,5],[6,7,8],
+      [0,3,6],[1,4,7],[2,5,8],
+      [0,4,8],[2,4,6]
+    ];
+
+    const icons = {
+      X: '<i class="fas fa-times icon" style="color:#d63031;"></i>',
+      O: '<i class="far fa-circle icon" style="color:#0984e3;"></i>'
+    };
+
+    const moveSound = document.getElementById("moveSound");
+    const winSound = document.getElementById("winSound");
+    const drawSound = document.getElementById("drawSound");
+
+    function startGame() {
+      player1Name = document.getElementById("player1").value.trim();
+      player2Name = document.getElementById("player2").value.trim();
+      totalGames = parseInt(document.getElementById("games").value);
+
+      if (!player1Name || !player2Name || isNaN(totalGames) || totalGames < 1) {
+        alert("Please fill all inputs correctly.");
+        return;
+      }
+
+      document.getElementById("setup").style.display = "none";
+      document.getElementById("game").style.display = "block";
+      document.getElementById("scoreX").textContent = `${player1Name} (❌): 0`;
+      document.getElementById("scoreO").textContent = `${player2Name} (⭕): 0`;
+      document.getElementById("restartBtn").style.display = "none";
+      scoreX = 0;
+      scoreO = 0;
+      gamesPlayed = 0;
+      currentPlayer = "X";
+      updateStatus();
+      renderBoard();
+    }
+
+    function renderBoard() {
+      const boardContainer = document.getElementById("board");
+      boardContainer.innerHTML = "";
+      board = Array(9).fill("");
+      gameActive = true;
+      document.getElementById("winnerMsg").textContent = "";
+
+      for (let i = 0; i < 9; i++) {
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        cell.addEventListener("click", () => handleMove(i));
+        boardContainer.appendChild(cell);
+      }
+    }
+
+    function handleMove(index) {
+      if (!gameActive || board[index]) return;
+
+      board[index] = currentPlayer;
+      document.getElementById("board").children[index].innerHTML = icons[currentPlayer];
+      moveSound.play();
+
+      if (checkWinner()) {
+        gameActive = false;
+        winSound.play();
+        announceWinner(currentPlayer);
+        return;
+      }
+
+      if (!board.includes("")) {
+        gameActive = false;
+        drawSound.play();
+        announceDraw();
+        return;
+      }
+
+      currentPlayer = currentPlayer === "X" ? "O" : "X";
+      updateStatus();
+    }
+
+    function checkWinner() {
+      return winPatterns.some(([a, b, c]) => board[a] && board[a] === board[b] && board[b] === board[c]);
+    }
+
+    function announceWinner(player) {
+      if (player === "X") scoreX++;
+      else scoreO++;
+
+      document.getElementById("scoreX").textContent = `${player1Name} (❌): ${scoreX}`;
+      document.getElementById("scoreO").textContent = `${player2Name} (⭕): ${scoreO}`;
+      document.getElementById("status").textContent = `🎉 ${player === "X" ? player1Name : player2Name} wins this round!`;
+
+      gamesPlayed++;
+      setTimeout(() => nextRoundOrEnd(), 1500);
+    }
+
+    function announceDraw() {
+      document.getElementById("status").textContent = "🤝 It's a draw!";
+      gamesPlayed++;
+      setTimeout(() => nextRoundOrEnd(), 1500);
+    }
+
+    function nextRoundOrEnd() {
+      if (gamesPlayed >= totalGames) {
+        let finalWinner = scoreX > scoreO ? player1Name : scoreO > scoreX ? player2Name : "No one";
+        document.getElementById("winnerMsg").textContent = `🏆 Game Over! ${finalWinner} wins the series!`;
+        document.getElementById("status").textContent = "Game finished.";
+        document.getElementById("restartBtn").style.display = "inline-block";
+      } else {
+        currentPlayer = "X";
+        renderBoard();
+        updateStatus();
+      }
+    }
+
+    function updateStatus() {
+      const name = currentPlayer === "X" ? player1Name : player2Name;
+      document.getElementById("status").textContent = `${name}'s Turn (${currentPlayer})`;
+    }
+
+    function backToSetup() {
+      // Reset everything to start from scratch
+      document.getElementById("setup").style.display = "block";
+      document.getElementById("game").style.display = "none";
+      document.getElementById("player1").value = "";
+      document.getElementById("player2").value = "";
+      document.getElementById("games").value = "";
+    }
+  </script>
+</body>
+</html>
