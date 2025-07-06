@@ -172,6 +172,10 @@
         alert("Please fill all inputs correctly.");
         return;
       }
+      if (totalGames > 10) {
+        alert("Max No of Games can be play is 10.");
+        return;
+      }
 
       document.getElementById("setup").style.display = "none";
       document.getElementById("game").style.display = "block";
